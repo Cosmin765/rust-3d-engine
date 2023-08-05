@@ -25,7 +25,23 @@ impl Drawable {
         let projected: Vec<Vector3> = self.vertices.iter()
             .map(|point| &Matrix3::identity() * &(&(&self.rotation * &(point * size)) + &self.origin)).collect();
 
-        self.draw_from_projected(canvas, projected, size);
+        let corner_square_size = 5;
+        for point in projected.iter() {
+            let x = point.x as i32 - (corner_square_size / 2) as i32;
+            let y = point.y as i32 - (corner_square_size / 2) as i32;
+            canvas.fill_rect(Rect::new(x, y, corner_square_size, corner_square_size)).unwrap();
+        }
+
+        for &(i, j) in self.indices.iter() {
+            let p1 = &projected[i];
+            let p2 = &projected[j];
+
+            canvas.draw_line(Point::new(p1.x as i32, p1.y as i32), Point::new(p2.x as i32, p2.y as i32)).unwrap();
+        }
+
+        for child in self.children.iter_mut() {
+            child.draw_rec(canvas, self.rotation.clone(), self.origin.clone(), size / 2.0);
+        }
     }
 
     fn draw_rec(&mut self, canvas: &mut Canvas<Window>, parent_rotation: Matrix3, parent_origin: Vector3, size: f64) {
@@ -36,33 +52,22 @@ impl Drawable {
                 &Matrix3::identity() * &checkpoint
             }).collect();
 
-
-        self.draw_from_projected(canvas, projected, size);
-    }
-
-    fn draw_from_projected(&mut self, canvas: &mut Canvas<Window>, projected: Vec<Vector3>, size: f64) {
-        let corner_square_size = 10u32;
+        let corner_square_size = 5;
         for point in projected.iter() {
             let x = point.x as i32 - (corner_square_size / 2) as i32;
             let y = point.y as i32 - (corner_square_size / 2) as i32;
             canvas.fill_rect(Rect::new(x, y, corner_square_size, corner_square_size)).unwrap();
         }
 
-        for (i, j) in self.indices.iter() {
-            let p1 = &projected[*i];
-            let p2 = &projected[*j];
+        for &(i, j) in self.indices.iter() {
+            let p1 = &projected[i];
+            let p2 = &projected[j];
 
-            let x1 = p1.x as i32;
-            let y1 = p1.y as i32;
-            
-            let x2 = p2.x as i32;
-            let y2 = p2.y as i32;
-
-            canvas.draw_line(Point::new(x1, y1), Point::new(x2, y2)).unwrap();
+            canvas.draw_line(Point::new(p1.x as i32, p1.y as i32), Point::new(p2.x as i32, p2.y as i32)).unwrap();
         }
 
         for child in self.children.iter_mut() {
-            child.draw_rec(canvas, self.rotation.clone(), self.origin.clone(), size / 2.0);
+            child.draw_rec(canvas, &self.rotation * &parent_rotation, &self.origin + &parent_origin, size / 2.0);
         }
     }
 
@@ -76,8 +81,8 @@ impl Drawable {
         self
     }
 
-    pub fn add_child(&mut self, child: Drawable) -> &mut Self {
+    pub fn add_child(&mut self, child: Drawable) -> &mut Drawable {
         self.children.push(child);
-        self
+        self.children.last_mut().unwrap()
     }
 }

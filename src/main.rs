@@ -36,8 +36,10 @@ fn get_cube() -> Drawable {
     Drawable::new(vertices, indices)
 }
 
-fn get_recursive_structure() -> Drawable {
-    let space = 200.0;
+fn add_recursive_children(drawable: &mut Drawable, level: usize, space: f64) {
+    if level == 0 {
+        return;
+    }
 
     let variations: Vec<Vector3> = vec![
         Vector3::new(1.0, 0.0, 0.0),
@@ -48,14 +50,18 @@ fn get_recursive_structure() -> Drawable {
         Vector3::new(0.0, 0.0, -1.0),
     ].iter().map(|v| v * space).collect();
 
-
-    let mut origin_cube = get_cube();
-
     for variation in variations.iter() {
         let mut child = get_cube();
         child.set_origin(variation.clone());
-        origin_cube.add_child(child);
+        let child = drawable.add_child(child);
+
+        add_recursive_children(child, level - 1, space / 2.0);
     }
+}
+
+fn get_recursive_structure(level: usize, space: f64) -> Drawable {
+    let mut origin_cube = get_cube();
+    add_recursive_children(&mut origin_cube, level, space);
 
     origin_cube
 }
@@ -81,7 +87,7 @@ pub fn main() {
     
     let mut angle = 0.0;
 
-    let mut recursive_structure = get_recursive_structure();
+    let mut recursive_structure = get_recursive_structure(1, 250.0);
 
     let origin = Vector3::new(width as f64 / 2.0, height as f64 / 2.0, 0.0);
 
@@ -104,11 +110,11 @@ pub fn main() {
 
         let rotation = &Matrix3::y_rotation(angle) * &Matrix3::x_rotation(angle);
         recursive_structure.set_origin(origin.clone()).set_rotation(rotation.clone());
-        recursive_structure.draw(&mut canvas, 50.0);
+        recursive_structure.draw(&mut canvas, 80.0);
         
         canvas.present();
 
-        angle += 0.05f64;
+        angle += 0.01f64;
         
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
